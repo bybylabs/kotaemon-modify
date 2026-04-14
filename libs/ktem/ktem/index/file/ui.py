@@ -115,17 +115,17 @@ class DirectoryUpload(BasePage):
 
     def on_building_ui(self):
         with gr.Accordion(label="Directory upload", open=False):
-            gr.Markdown(f"Supported file types: {self._supported_file_types_str}")
+            gr.Markdown(f"支持的文件类型：{self._supported_file_types_str}")
             self.path = gr.Textbox(
                 placeholder="Directory path...", lines=1, max_lines=1, container=False
             )
-            with gr.Accordion("Advanced indexing options", open=False):
+            with gr.Accordion("高级索引选项", open=False):
                 with gr.Row():
                     self.reindex = gr.Checkbox(
-                        value=False, label="Force reindex file", container=False
+                        value=False, label="强制重新索引", container=False
                     )
 
-            self.upload_button = gr.Button("Upload and Index")
+            self.upload_button = gr.Button("上传并建立索引")
 
 
 class FileIndexPage(BasePage):
@@ -138,7 +138,7 @@ class FileIndexPage(BasePage):
         self._supported_file_types = [
             each.strip() for each in self._supported_file_types_str.split(",")
         ]
-        self.selected_panel_false = "Selected file: (please select above)"
+        self.selected_panel_false = "已选文件：（请在上方选择）"
         self.selected_panel_true = "Selected file: {name}"
         # TODO: on_building_ui is not correctly named if it's always called in
         # the constructor
@@ -150,10 +150,10 @@ class FileIndexPage(BasePage):
     def upload_instruction(self) -> str:
         msgs = []
         if self._supported_file_types:
-            msgs.append(f"- Supported file types: {self._supported_file_types_str}")
+            msgs.append(f"- 支持的文件类型：{self._supported_file_types_str}")
 
         if max_file_size := self._index.config.get("max_file_size", 0):
-            msgs.append(f"- Maximum file size: {max_file_size} MB")
+            msgs.append(f"- 最大文件大小：{max_file_size} MB")
 
         if max_number_of_files := self._index.config.get("max_number_of_files", 0):
             msgs.append(f"- The index can have maximum {max_number_of_files} files")
@@ -166,7 +166,7 @@ class FileIndexPage(BasePage):
     def render_file_list(self):
         self.filter = gr.Textbox(
             value="",
-            label="Filter by name:",
+            label="按名称筛选：",
             info=(
                 "(1) Case-insensitive. "
                 "(2) Search with empty string to show all files."
@@ -216,14 +216,14 @@ class FileIndexPage(BasePage):
 
         self.chunks = gr.HTML(visible=False)
 
-        with gr.Accordion("Advance options", open=False):
+        with gr.Accordion("高级选项", open=False):
             with gr.Row():
                 if not KH_SSO_ENABLED:
                     self.download_all_button = gr.DownloadButton(
-                        "Download all files",
+                        "下载全部文件",
                     )
                 self.delete_all_button = gr.Button(
-                    "Delete all files",
+                    "删除全部文件",
                     variant="stop",
                     visible=True,
                 )
@@ -288,7 +288,7 @@ class FileIndexPage(BasePage):
         with gr.Row():
             with gr.Column(scale=1):
                 with gr.Column() as self.upload:
-                    with gr.Tab("Upload Files"):
+                    with gr.Tab("上传文件"):
                         self.files = File(
                             file_types=self._supported_file_types,
                             file_count="multiple",
@@ -300,21 +300,21 @@ class FileIndexPage(BasePage):
                         if msg:
                             gr.Markdown(msg)
 
-                    with gr.Tab("Use Web Links"):
+                    with gr.Tab("使用网页链接"):
                         self.urls = gr.Textbox(
                             label="Input web URLs",
                             lines=8,
                         )
                         gr.Markdown("(separated by new line)")
 
-                    with gr.Accordion("Advanced indexing options", open=False):
+                    with gr.Accordion("高级索引选项", open=False):
                         with gr.Row():
                             self.reindex = gr.Checkbox(
-                                value=False, label="Force reindex file", container=False
+                                value=False, label="强制重新索引", container=False
                             )
 
                     self.upload_button = gr.Button(
-                        "Upload and Index", variant="primary"
+                        "上传并建立索引", variant="primary"
                     )
 
             with gr.Column(scale=4):
@@ -333,10 +333,10 @@ class FileIndexPage(BasePage):
                         elem_classes=["right-button"],
                     )
 
-                with gr.Tab("Files"):
+                with gr.Tab("文件列表"):
                     self.render_file_list()
 
-                with gr.Tab("Groups"):
+                with gr.Tab("分组"):
                     self.render_group_list()
 
     def on_subscribe_public_events(self):
@@ -1588,7 +1588,7 @@ class FileIndexPage(BasePage):
                 if len(str_errors) > 60:
                     str_errors = str_errors[:55] + "..."
                 errors.append(
-                    f"Maximum file size ({max_file_size} MB) exceeded: {str_errors}"
+                    f"文件大小超过限制（{max_file_size} MB）：{str_errors}"
                 )
 
         if max_number_of_files := self._index.config.get("max_number_of_files", 0):
@@ -1631,13 +1631,13 @@ class FileSelector(BasePage):
         self.mode = gr.Radio(
             value=default_mode,
             choices=[
-                ("Search All", "all"),
-                ("Search In File(s)", "select"),
+                ("全部搜索", "all"),
+                ("仅搜索选中", "select"),
             ],
             container=False,
         )
         self.selector = gr.Dropdown(
-            label="Files",
+            label="文件列表",
             value=default_selector,
             choices=[],
             multiselect=True,

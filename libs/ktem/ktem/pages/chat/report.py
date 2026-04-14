@@ -12,34 +12,34 @@ class ReportIssue(BasePage):
         self.on_building_ui()
 
     def on_building_ui(self):
-        with gr.Accordion(label="Feedback", open=False, elem_id="report-accordion"):
+        with gr.Accordion(label="反馈", open=False, elem_id="report-accordion"):
             self.correctness = gr.Radio(
                 choices=[
-                    ("The answer is correct", "correct"),
-                    ("The answer is incorrect", "incorrect"),
+                    ("回答正确", "correct"),
+                    ("回答错误", "incorrect"),
                 ],
-                label="Correctness:",
+                label="准确性：",
             )
             self.issues = gr.CheckboxGroup(
                 choices=[
-                    ("The answer is offensive", "offensive"),
-                    ("The evidence is incorrect", "wrong-evidence"),
+                    ("内容不当", "offensive"),
+                    ("引用有误", "wrong-evidence"),
                 ],
-                label="Other issue:",
+                label="其他问题：",
             )
             self.more_detail = gr.Textbox(
                 placeholder=(
-                    "More detail (e.g. how wrong is it, what is the "
-                    "correct answer, etc...)"
+                    "请描述具体问题（例如：哪里出错了，正确答案是什么， "
+                    "等）"
                 ),
                 container=False,
                 lines=3,
             )
             gr.Markdown(
-                "This will send the current chat and the user settings to "
+                "将发送当前对话和用户设置以协助排查"
                 "help with investigation"
             )
-            self.report_btn = gr.Button("Report")
+            self.report_btn = gr.Button("提交反馈")
 
     def report(
         self,

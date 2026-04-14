@@ -14,7 +14,6 @@ KH_SSO_ENABLED = getattr(flowsettings, "KH_SSO_ENABLED", False)
 KH_ENABLE_FIRST_SETUP = getattr(flowsettings, "KH_ENABLE_FIRST_SETUP", False)
 KH_APP_DATA_EXISTS = getattr(flowsettings, "KH_APP_DATA_EXISTS", True)
 
-# override first setup setting
 if config("KH_FIRST_SETUP", default=False, cast=bool):
     KH_APP_DATA_EXISTS = False
 
@@ -42,18 +41,20 @@ class App(BaseApp):
                 ) as self._tabs["login-tab"]:
                     self.login_page = LoginPage(self)
 
+            # ── 1. 智能问答
             with gr.Tab(
-                "Chat",
+                "智能问答",
                 elem_id="chat-tab",
                 id="chat-tab",
                 visible=not self.f_user_management,
             ) as self._tabs["chat-tab"]:
                 self.chat_page = ChatPage(self)
 
+            # ── 2. 知识库管理
             if len(self.index_manager.indices) == 1:
                 for index in self.index_manager.indices:
                     with gr.Tab(
-                        f"{index.name}",
+                        "知识库管理",
                         elem_id="indices-tab",
                         elem_classes=[
                             "fill-main-area-height",
@@ -67,7 +68,7 @@ class App(BaseApp):
                         setattr(self, f"_index_{index.id}", page)
             elif len(self.index_manager.indices) > 1:
                 with gr.Tab(
-                    "Files",
+                    "知识库管理",
                     elem_id="indices-tab",
                     elem_classes=["fill-main-area-height", "scrollable", "indices-tab"],
                     id="indices-tab",
@@ -81,36 +82,7 @@ class App(BaseApp):
                             page = index.get_index_page_ui()
                             setattr(self, f"_index_{index.id}", page)
 
-            if not KH_DEMO_MODE:
-                if not KH_SSO_ENABLED:
-                    with gr.Tab(
-                        "Resources",
-                        elem_id="resources-tab",
-                        id="resources-tab",
-                        visible=not self.f_user_management,
-                        elem_classes=["fill-main-area-height", "scrollable"],
-                    ) as self._tabs["resources-tab"]:
-                        self.resources_page = ResourcesTab(self)
-
-                with gr.Tab(
-                    "Settings",
-                    elem_id="settings-tab",
-                    id="settings-tab",
-                    visible=not self.f_user_management,
-                    elem_classes=["fill-main-area-height", "scrollable"],
-                ) as self._tabs["settings-tab"]:
-                    self.settings_page = SettingsPage(self)
-
-            with gr.Tab(
-                "Help",
-                elem_id="help-tab",
-                id="help-tab",
-                visible=not self.f_user_management,
-                elem_classes=["fill-main-area-height", "scrollable"],
-            ) as self._tabs["help-tab"]:
-                self.help_page = HelpPage(self)
-
-            # ── 新增：报告生成 Tab ──────────────────────
+            # ── 3. 报告生成
             with gr.Tab(
                 "报告生成",
                 elem_id="report-tab",
@@ -119,6 +91,38 @@ class App(BaseApp):
                 elem_classes=["fill-main-area-height", "scrollable"],
             ) as self._tabs["report-tab"]:
                 self.report_page = ReportPage(self)
+
+            if not KH_DEMO_MODE:
+                # ── 4. 资源配置
+                if not KH_SSO_ENABLED:
+                    with gr.Tab(
+                        "资源配置",
+                        elem_id="resources-tab",
+                        id="resources-tab",
+                        visible=not self.f_user_management,
+                        elem_classes=["fill-main-area-height", "scrollable"],
+                    ) as self._tabs["resources-tab"]:
+                        self.resources_page = ResourcesTab(self)
+
+                # ── 5. 系统设置
+                with gr.Tab(
+                    "系统设置",
+                    elem_id="settings-tab",
+                    id="settings-tab",
+                    visible=not self.f_user_management,
+                    elem_classes=["fill-main-area-height", "scrollable"],
+                ) as self._tabs["settings-tab"]:
+                    self.settings_page = SettingsPage(self)
+
+            # ── 6. 帮助
+            with gr.Tab(
+                "帮助",
+                elem_id="help-tab",
+                id="help-tab",
+                visible=not self.f_user_management,
+                elem_classes=["fill-main-area-height", "scrollable"],
+            ) as self._tabs["help-tab"]:
+                self.help_page = HelpPage(self)
 
         if KH_ENABLE_FIRST_SETUP:
             with gr.Column(visible=False) as self.setup_page_wrapper:
@@ -209,19 +213,16 @@ class App(BaseApp):
                 outputs=[self.setup_page_wrapper, self.tabs],
             )
 
-        # ── 新增：读取 URL 参数 ?tab=xxx 控制初始显示的 Tab ──
-        # tab 参数映射表
-        # 前端跳转示例：
-        #   ?tab=chat      → Chat（RAG问答/代码生成）
-        #   ?tab=files     → Files（知识库管理）
-        #   ?tab=report    → 报告生成
+        # URL 参数控制初始 Tab
+        # ?tab=chat    → 智能问答
+        # ?tab=files   → 知识库管理
+        # ?tab=report  → 报告生成
         js_switch_tab = """
         async () => {
             const params = new URLSearchParams(window.location.search);
             const tab = params.get('tab');
             if (!tab) return;
 
-            // tab参数到elem_id的映射
             const tabMap = {
                 'chat':   'chat-tab',
                 'files':  'indices-tab',
@@ -231,7 +232,6 @@ class App(BaseApp):
             const targetId = tabMap[tab];
             if (!targetId) return;
 
-            // 等待 Gradio 渲染完成后再点击
             const tryClick = (retries) => {
                 const btn = document.querySelector(
                     '#' + targetId + '-button, button[id="' + targetId + '-button"]'
