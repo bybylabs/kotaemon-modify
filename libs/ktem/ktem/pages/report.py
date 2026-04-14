@@ -1,7 +1,6 @@
 import os
 import tempfile
 from datetime import datetime
-from pathlib import Path
 
 import gradio as gr
 from ktem.app import BasePage
@@ -19,9 +18,8 @@ def generate_report_doc(
     try:
         from docx import Document
         from docx.shared import Inches, Pt
-        from openai import OpenAI
     except ImportError as e:
-        return None, f"缺少依赖库：{e}，请执行 pip install python-docx openai"
+        return None, f"缺少依赖库：{e}，请执行 pip install python-docx"
 
     if not exp_name:
         return None, "请填写实验名称"
@@ -36,16 +34,16 @@ def generate_report_doc(
         except Exception as e:
             data_text = f"（数据文件读取失败：{e}）"
 
-    # ── 2. 调用大模型生成分析摘要 ──────────────────────
+    # ── 2. 复用 Kotaemon 当前配置的默认大模型 ──────────
     analysis_text = ""
-    llm_base_url = os.getenv("REPORT_LLM_BASE_URL", "")
-    llm_api_key = os.getenv("REPORT_LLM_API_KEY", "")
-    llm_model = os.getenv("REPORT_LLM_MODEL", "")
-
-    if llm_base_url and llm_api_key and llm_model and data_text:
+    if data_text:
         try:
-            client = OpenAI(base_url=llm_base_url, api_key=llm_api_key)
-            prompt = f"""你是一名专业的实验分析工程师。
+            from ktem.llms.manager import llms
+            llm = llms.get_default()
+            if llm is None:
+                analysis_text = "（未配置默认大模型，请在 Resources Tab 中配置）"
+            else:
+                prompt = f"""你是一名专业的实验分析工程师。
 以下是一份仿真实验的数据结果，请根据数据内容生成一段专业的实验结果分析与总结。
 要求：
 1. 概括实验的主要结果和关键指标
@@ -59,19 +57,13 @@ def generate_report_doc(
 实验数据：
 {data_text[:3000]}
 """
-            resp = client.chat.completions.create(
-                model=llm_model,
-                messages=[{"role": "user", "content": prompt}],
-                max_tokens=600,
-            )
-            analysis_text = resp.choices[0].message.content.strip()
+                from kotaemon.base import HumanMessage
+                response = llm([HumanMessage(content=prompt)])
+                analysis_text = response.text
         except Exception as e:
-            analysis_text = f"（大模型分析生成失败：{e}，以下为数据摘要）\n{data_text[:500]}"
+            analysis_text = f"（大模型分析生成失败：{e}）"
     else:
-        if data_text:
-            analysis_text = "（未配置大模型接口，请在 .env 中设置 REPORT_LLM_BASE_URL / REPORT_LLM_API_KEY / REPORT_LLM_MODEL）"
-        else:
-            analysis_text = "（未上传数据文件，无法生成分析）"
+        analysis_text = "（未上传数据文件，无法生成分析）"
 
     # ── 3. 用 python-docx 生成 Word 文档 ──────────────
     doc = Document()
@@ -102,11 +94,11 @@ def generate_report_doc(
     # 第二章：实验数据
     doc.add_heading("第二章  实验数据", level=1)
     if data_text:
-        # 只展示前2000字符，避免文档过大
         display_data = data_text[:2000]
         if len(data_text) > 2000:
-            display_data += "\n...\n（数据过长，已截断，完整数据见原始文件）"
-        doc.add_paragraph(display_data).style.font.size = Pt(9)
+            display_data += "\n...\n（数据过长，已截断）"
+        p = doc.add_paragraph(display_data)
+        p.runs[0].font.size = Pt(9)
     else:
         doc.add_paragraph("（未上传数据文件）")
 
@@ -136,13 +128,15 @@ def generate_report_doc(
 
     doc.add_paragraph("")
 
-    # 页脚信息
+    # 页脚
     doc.add_paragraph(
         f"报告生成时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
     ).italic = True
 
     # ── 4. 保存文件 ────────────────────────────────────
-    safe_name = "".join(c for c in exp_name if c.isalnum() or c in "._- ").strip()
+    safe_name = "".join(
+        c for c in exp_name if c.isalnum() or c in "._- "
+    ).strip()
     filename = f"{safe_name}_实验报告_{datetime.now().strftime('%Y%m%d%H%M%S')}.docx"
     output_path = os.path.join(tempfile.gettempdir(), filename)
     doc.save(output_path)
@@ -212,6 +206,8 @@ class ReportPage(BasePage):
 - 第二章：实验数据
 - 第三章：实验图表
 - 第四章：AI 分析与总结
+
+> 大模型使用 Resources Tab 中配置的默认模型
                     """
                 )
 

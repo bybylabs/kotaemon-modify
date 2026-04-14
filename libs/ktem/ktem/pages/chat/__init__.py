@@ -1397,7 +1397,7 @@ class ChatPage(BasePage):
         if use_suggestion:
             suggest_pipeline = SuggestFollowupQuesPipeline()
             suggest_pipeline.lang = SUPPORTED_LANGUAGE_MAP.get(
-                target_language, "English"
+                target_language, "Chinese"
             )
             suggested_questions = [[each] for each in ChatSuggestion.CHAT_SAMPLES]
 
