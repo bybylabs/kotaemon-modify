@@ -3,6 +3,7 @@ from decouple import config
 from ktem.app import BaseApp
 from ktem.pages.chat import ChatPage
 from ktem.pages.help import HelpPage
+from ktem.pages.report import ReportPage
 from ktem.pages.resources import ResourcesTab
 from ktem.pages.settings import SettingsPage
 from ktem.pages.setup import SetupPage
@@ -26,18 +27,7 @@ def toggle_first_setup_visibility():
 
 
 class App(BaseApp):
-    """The main app of Kotaemon
-
-    The main application contains app-level information:
-        - setting state
-        - user id
-
-    App life-cycle:
-        - Render
-        - Declare public events
-        - Subscribe public events
-        - Register events
-    """
+    """The main app of Kotaemon"""
 
     def ui(self):
         """Render the UI"""
@@ -119,6 +109,16 @@ class App(BaseApp):
                 elem_classes=["fill-main-area-height", "scrollable"],
             ) as self._tabs["help-tab"]:
                 self.help_page = HelpPage(self)
+
+            # ── 新增：报告生成 Tab ──────────────────────
+            with gr.Tab(
+                "报告生成",
+                elem_id="report-tab",
+                id="report-tab",
+                visible=not self.f_user_management,
+                elem_classes=["fill-main-area-height", "scrollable"],
+            ) as self._tabs["report-tab"]:
+                self.report_page = ReportPage(self)
 
         if KH_ENABLE_FIRST_SETUP:
             with gr.Column(visible=False) as self.setup_page_wrapper:
@@ -208,3 +208,41 @@ class App(BaseApp):
                 inputs=[],
                 outputs=[self.setup_page_wrapper, self.tabs],
             )
+
+        # ── 新增：读取 URL 参数 ?tab=xxx 控制初始显示的 Tab ──
+        # tab 参数映射表
+        # 前端跳转示例：
+        #   ?tab=chat      → Chat（RAG问答/代码生成）
+        #   ?tab=files     → Files（知识库管理）
+        #   ?tab=report    → 报告生成
+        js_switch_tab = """
+        async () => {
+            const params = new URLSearchParams(window.location.search);
+            const tab = params.get('tab');
+            if (!tab) return;
+
+            // tab参数到elem_id的映射
+            const tabMap = {
+                'chat':   'chat-tab',
+                'files':  'indices-tab',
+                'report': 'report-tab',
+            };
+
+            const targetId = tabMap[tab];
+            if (!targetId) return;
+
+            // 等待 Gradio 渲染完成后再点击
+            const tryClick = (retries) => {
+                const btn = document.querySelector(
+                    '#' + targetId + '-button, button[id="' + targetId + '-button"]'
+                );
+                if (btn) {
+                    btn.click();
+                } else if (retries > 0) {
+                    setTimeout(() => tryClick(retries - 1), 300);
+                }
+            };
+            setTimeout(() => tryClick(10), 500);
+        }
+        """
+        self.app.load(fn=None, inputs=None, outputs=None, js=js_switch_tab)
