@@ -119,7 +119,7 @@ class App(BaseApp):
                 "帮助",
                 elem_id="help-tab",
                 id="help-tab",
-                visible=not self.f_user_management,
+                visible=False,
                 elem_classes=["fill-main-area-height", "scrollable"],
             ) as self._tabs["help-tab"]:
                 self.help_page = HelpPage(self)
@@ -165,6 +165,8 @@ class App(BaseApp):
                         tabs_update.append(gr.update(visible=False))
                     elif k == "resources-tab":
                         tabs_update.append(gr.update(visible=is_admin))
+                    elif k == "help-tab":
+                        tabs_update.append(gr.update(visible=False))
                     else:
                         tabs_update.append(gr.update(visible=True))
 

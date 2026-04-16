@@ -376,6 +376,7 @@ class ChatPage(BasePage):
                                 container=False,
                                 elem_id="use-mindmap-checkbox",
                                 value=True,
+                                visible=False,
                             )
                         else:
                             self.use_mindmap = gr.State(value=False)
@@ -384,6 +385,7 @@ class ChatPage(BasePage):
                                 container=False,
                                 elem_id="use-mindmap-checkbox",
                                 value=False,
+                                visible=False,
                             )
 
             with gr.Column(
